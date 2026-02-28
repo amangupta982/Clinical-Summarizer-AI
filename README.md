@@ -64,10 +64,9 @@ Built using Streamlit, featuring:
 
 
 
-
+```
 ## 🧬 System Architecture
 
-```
                 ┌────────────────────┐
                 │   Physician Notes  │
                 └──────────┬─────────┘
