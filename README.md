@@ -1,19 +1,19 @@
-🏥 Clinical Multi-Modal AI Summarizer
-
+## 🏥 Clinical Multi-Modal AI Summarizer
+```
 An intelligent clinical decision-support tool designed to synthesize fragmented medical data — including physician notes, laboratory reports, and real-time vitals — into a cohesive, actionable clinical summary.
 
 This project leverages Natural Language Processing (NLP) and Multi-Modal Data Fusion to reduce cognitive load for healthcare professionals and enhance clinical efficiency.
 
 ⸻
 
-🌟 Key Features
+## 🌟 Key Features
 
 🔗 Multi-Modal Data Fusion
 
 Seamlessly integrates:
-	_	📝 Unstructured narrative physician notes
-	_	📊 Structured laboratory reports (CSV format)
-	_	❤️ Time-series vital signs data
+	•	📝 Unstructured narrative physician notes
+	•	📊 Structured laboratory reports (CSV format)
+	•	❤️ Time-series vital signs data
 
 ⸻
 
@@ -63,7 +63,7 @@ Built using Streamlit, featuring:
 	•	Easy data upload & visualization
 
 
-🧬 System Architecture
+
 
 ## 🧬 System Architecture
 
@@ -97,7 +97,7 @@ Built using Streamlit, featuring:
                 └────────────────────┘
 ```
 
-🛠️ Tech Stack
+## 🛠️ Tech Stack
 
 Category.               Technology
 Language                Python 3.10+
@@ -107,7 +107,7 @@ Data Handling.          Pandas, NumPy
 Deployment.             Streamlit Community Cloud
 
 
-🚀 Getting Started
+## 🚀 Getting Started
 
 📌 Prerequisites
 	•	Python 3.10 or higher
@@ -141,7 +141,7 @@ Deployed on Streamlit Community Cloud
 	6.	Unified summary generation
 
 
-🎯 Use Cases
+## 🎯 Use Cases
 	•	Clinical decision support
 	•	Medical education simulations
 	•	Healthcare AI research
@@ -150,7 +150,7 @@ Deployed on Streamlit Community Cloud
 
 ⸻
 
-📈 Future Roadmap
+## 📈 Future Roadmap
 	•	Transformer-based clinical summarization (BioBERT / ClinicalBERT)
 	•	Real-time hospital data streaming
 	•	Risk prediction scoring
@@ -159,7 +159,7 @@ Deployed on Streamlit Community Cloud
 	•	ML-based anomaly detection
 
 
-👨‍💻 Developed By
+## 👨‍💻 Developed By
 
 Aman Gupta
 AI & Machine Learning Developer
@@ -167,7 +167,9 @@ Focused on building intelligent healthcare automation systems.
 
 ⸻
 
-📜 License
+## 📜 License
 
 This project is for educational and research purposes only.
 Not intended for direct clinical deployment without regulatory validation.
+
+```
