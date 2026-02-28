@@ -11,9 +11,9 @@ This project leverages Natural Language Processing (NLP) and Multi-Modal Data Fu
 🔗 Multi-Modal Data Fusion
 
 Seamlessly integrates:
-	-	📝 Unstructured narrative physician notes
-	-	📊 Structured laboratory reports (CSV format)
-	-	❤️ Time-series vital signs data
+	_	📝 Unstructured narrative physician notes
+	_	📊 Structured laboratory reports (CSV format)
+	_	❤️ Time-series vital signs data
 
 ⸻
 
