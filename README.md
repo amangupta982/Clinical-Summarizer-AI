@@ -123,6 +123,12 @@ pip install -r requirements.txt
 streamlit run app.py
 
 
+☁️ Live Deployment
+
+Deployed on Streamlit Community Cloud
+
+
+🔗 https://clinical-summarizer-ai.streamlit.app
 🧬 Project Architecture Overview
 	1.	Text preprocessing using NLTK
 	2.	Keyword-based clinical filtering
@@ -141,14 +147,14 @@ streamlit run app.py
 
 ⸻
 
-📈 Future Enhancements
+📈 Future Roadmap
 	•	Transformer-based clinical summarization (BioBERT / ClinicalBERT)
-	•	Real-time EHR integration
-	•	Advanced anomaly detection models
-	•	Risk scoring system
-	•	HIPAA-compliant secure deployment
+	•	Real-time hospital data streaming
+	•	Risk prediction scoring
+	•	EHR integration APIs
+	•	Secure healthcare cloud deployment
+	•	ML-based anomaly detection
 
-⸻
 
 👨‍💻 Developed By
 
