@@ -1,15 +1,18 @@
-import streamlit as st
 import pandas as pd
 import nltk
-from nltk.tokenize import sent_tokenize
 import numpy as np
-
-# Ensure NLTK resources are available
+import streamlit as st
+# Updated NLTK download logic for Streamlit Cloud
 try:
-    nltk.data.find('tokenizers/punkt')
+    # Try to find the newer punkt_tab or the older punkt
+    nltk.data.find('tokenizers/punkt_tab')
 except LookupError:
+    # Download both to be safe
     nltk.download('punkt')
+    nltk.download('punkt_tab')
 
+# Now import the tokenizer after ensuring data is present
+from nltk.tokenize import sent_tokenize
 ## --- BACKEND LOGIC --- ##
 
 def process_clinical_text(raw_text):
