@@ -65,6 +65,9 @@ Built using Streamlit, featuring:
 
 🧬 System Architecture
 
+## 🧬 System Architecture
+
+```
                 ┌────────────────────┐
                 │   Physician Notes  │
                 └──────────┬─────────┘
@@ -77,9 +80,9 @@ Built using Streamlit, featuring:
                 └──────────┬─────────┘
                            │
                            ▼
-┌──────────────┐   ┌────────────────────┐   ┌──────────────┐
-│ Lab CSV Data │ → │ Abnormality Engine │ ← │ Vitals Log   │
-└──────────────┘   └────────────────────┘   └──────────────┘
+        ┌──────────────┐   ┌────────────────────┐   ┌──────────────┐
+        │ Lab CSV Data │ → │ Abnormality Engine │ ← │ Vitals Log   │
+        └──────────────┘   └────────────────────┘   └──────────────┘
                            │
                            ▼
                 ┌────────────────────┐
@@ -92,7 +95,7 @@ Built using Streamlit, featuring:
                 │ Unified Clinical   │
                 │ Actionable Report  │
                 └────────────────────┘
-
+```
 
 🛠️ Tech Stack
 
