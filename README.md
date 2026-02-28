@@ -1,10 +1,12 @@
+
 ## 🏥 Clinical Multi-Modal AI Summarizer
-```
+
 An intelligent clinical decision-support tool designed to synthesize fragmented medical data — including physician notes, laboratory reports, and real-time vitals — into a cohesive, actionable clinical summary.
 
 This project leverages Natural Language Processing (NLP) and Multi-Modal Data Fusion to reduce cognitive load for healthcare professionals and enhance clinical efficiency.
 
 ⸻
+```
 ```
 ## 🌟 Key Features
 
@@ -104,8 +106,8 @@ NLP Framework.          NLTK
 Web Framework.          Streamlit
 Data Handling.          Pandas, NumPy
 Deployment.             Streamlit Community Cloud
-
-
+```
+```
 ## 🚀 Getting Started
 
 📌 Prerequisites
