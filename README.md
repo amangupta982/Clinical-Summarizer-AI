@@ -5,7 +5,7 @@ An intelligent clinical decision-support tool designed to synthesize fragmented 
 This project leverages Natural Language Processing (NLP) and Multi-Modal Data Fusion to reduce cognitive load for healthcare professionals and enhance clinical efficiency.
 
 ⸻
-
+```
 ## 🌟 Key Features
 
 🔗 Multi-Modal Data Fusion
@@ -62,7 +62,7 @@ Built using Streamlit, featuring:
 	•	Real-time updates
 	•	Easy data upload & visualization
 
-
+```
 
 ```
 ## 🧬 System Architecture
@@ -95,7 +95,7 @@ Built using Streamlit, featuring:
                 │ Actionable Report  │
                 └────────────────────┘
 ```
-
+```
 ## 🛠️ Tech Stack
 
 Category.               Technology
@@ -138,8 +138,8 @@ Deployed on Streamlit Community Cloud
 	4.	Time-series statistical evaluation
 	5.	Heuristic recommendation engine
 	6.	Unified summary generation
-
-
+```
+```
 ## 🎯 Use Cases
 	•	Clinical decision support
 	•	Medical education simulations
@@ -148,7 +148,8 @@ Deployed on Streamlit Community Cloud
 	•	AI healthcare hackathons
 
 ⸻
-
+```
+```
 ## 📈 Future Roadmap
 	•	Transformer-based clinical summarization (BioBERT / ClinicalBERT)
 	•	Real-time hospital data streaming
@@ -156,8 +157,8 @@ Deployed on Streamlit Community Cloud
 	•	EHR integration APIs
 	•	Secure healthcare cloud deployment
 	•	ML-based anomaly detection
-
-
+```
+```
 ## 👨‍💻 Developed By
 
 Aman Gupta
@@ -165,7 +166,8 @@ AI & Machine Learning Developer
 Focused on building intelligent healthcare automation systems.
 
 ⸻
-
+```
+```
 ## 📜 License
 
 This project is for educational and research purposes only.
