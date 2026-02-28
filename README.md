@@ -62,6 +62,38 @@ Built using Streamlit, featuring:
 	•	Real-time updates
 	•	Easy data upload & visualization
 
+
+🧬 System Architecture
+
+                ┌────────────────────┐
+                │   Physician Notes  │
+                └──────────┬─────────┘
+                           │
+                           ▼
+                ┌────────────────────┐
+                │ NLP Processing     │
+                │ Tokenization       │
+                │ Keyword Filtering  │
+                └──────────┬─────────┘
+                           │
+                           ▼
+┌──────────────┐   ┌────────────────────┐   ┌──────────────┐
+│ Lab CSV Data │ → │ Abnormality Engine │ ← │ Vitals Log   │
+└──────────────┘   └────────────────────┘   └──────────────┘
+                           │
+                           ▼
+                ┌────────────────────┐
+                │ Heuristic Fusion   │
+                │ Recommendation AI  │
+                └──────────┬─────────┘
+                           │
+                           ▼
+                ┌────────────────────┐
+                │ Unified Clinical   │
+                │ Actionable Report  │
+                └────────────────────┘
+
+
 🛠️ Tech Stack
 
 Category.               Technology
