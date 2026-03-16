@@ -28,14 +28,14 @@ The system fuses three independent data modalities:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  Clinical-Summarizer-AI                      │
+│                  Clinical-Summarizer-AI                     │
 │                                                             │
-│  📝 Physician Notes  ──► NLP Extraction + Sentiment        │
-│  🧪 Lab Results CSV  ──► Anomaly Detection + Flagging      │
+│  📝 Physician Notes  ──► NLP Extraction + Sentiment         |
+│  🧪 Lab Results CSV  ──► Anomaly Detection + Flagging       │
 │  💓 Vitals Stream    ──► Time-Series Analysis               │
 │                              │                              │
 │                              ▼                              │
-│              Cross-Modal Fusion Engine                       │
+│              Cross-Modal Fusion Engine                      │
 │                              │                              │
 │                              ▼                              │
 │         🚨 Actionable Clinical Report + Triage Level        │
