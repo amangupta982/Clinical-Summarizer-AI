@@ -1,202 +1,196 @@
 # 🏥 Clinical Multi-Modal AI Summarizer
 
-An intelligent clinical decision-support tool designed to synthesize fragmented medical data — including physician notes, laboratory reports, and real-time vitals — into a cohesive, actionable clinical summary.
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.32-red?logo=streamlit)](https://streamlit.io)
+[![NLTK](https://img.shields.io/badge/NLTK-3.8-green)](https://nltk.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/🤗%20Live%20Demo-HuggingFace%20Spaces-orange)](https://huggingface.co/spaces)
 
-This project leverages **Natural Language Processing (NLP)** and **Multi-Modal Data Fusion** to reduce cognitive load for healthcare professionals and enhance clinical efficiency.
+> **Synthesizing unstructured physician notes, laboratory data, and time-series vitals into dynamic, context-aware clinical insights — in real time.**
 
----
-
-## 🌟 Key Features
-
-### 🔗 Multi-Modal Data Fusion
-
-Seamlessly integrates:
-
-- 📝 Unstructured narrative physician notes  
-- 📊 Structured laboratory reports (CSV format)  
-- ❤️ Time-series vital signs data  
+A multimodal AI clinical decision-support tool that combines NLP-based text analysis, anomaly detection on lab results, and time-series vital sign monitoring to generate actionable patient summaries for healthcare providers.
 
 ---
 
-### 🧠 Intelligent Text Extraction
+## 📸 Demo
 
-- Uses **NLTK** for sentence tokenization  
-- Filters critical medical keywords such as:
-  - Diagnosis  
-  - History  
-  - Treatment  
-  - Symptoms  
-- Extracts clinically relevant insights automatically  
+<!-- Add a GIF here: record your screen using QuickTime (Mac) or OBS, then upload to the repo -->
+<!-- ![Demo GIF](assets/demo.gif) -->
+
+> 🔴 **[Try the Live App →](https://your-huggingface-spaces-link-here)**  
+> *(Deploy to HuggingFace Spaces — free, takes 5 minutes — instructions below)*
 
 ---
 
-### ⚠️ Automated Lab Flagging
+## 🧠 How It Works
 
-- Detects abnormal lab values  
-- Dynamically highlights:
-  - High  
-  - Low  
-- Improves rapid abnormality detection  
-
----
-
-### 📈 Vitals Trend Analysis
-
-- Performs statistical analysis on time-series data  
-- Detects clinical patterns such as:
-  - Tachycardia  
-  - Bradycardia  
-- Uses threshold-based evaluation logic  
-
----
-
-### 💡 Actionable Clinical Insights
-
-Generates heuristic-based **Next Step Recommendations** based on:
-
-- Extracted physician notes  
-- Lab abnormalities  
-- Vitals trends  
-
----
-
-### 🖥️ Interactive Dashboard
-
-Built using **Streamlit**, featuring:
-
-- Clean medical-grade interface  
-- Real-time updates  
-- Easy data upload & visualization  
-
----
-
-## 🧬 System Architecture
+The system fuses three independent data modalities:
 
 ```
-                ┌────────────────────┐
-                │   Physician Notes  │
-                └──────────┬─────────┘
-                           │
-                           ▼
-                ┌────────────────────┐
-                │ NLP Processing     │
-                │ Tokenization       │
-                │ Keyword Filtering  │
-                └──────────┬─────────┘
-                           │
-                           ▼
-        ┌──────────────┐   ┌────────────────────┐   ┌──────────────┐
-        │ Lab CSV Data │ → │ Abnormality Engine │ ← │ Vitals Log   │
-        └──────────────┘   └────────────────────┘   └──────────────┘
-                           │
-                           ▼
-                ┌────────────────────┐
-                │ Heuristic Fusion   │
-                │ Recommendation AI  │
-                └──────────┬─────────┘
-                           │
-                           ▼
-                ┌────────────────────┐
-                │ Unified Clinical   │
-                │ Actionable Report  │
-                └────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                  Clinical-Summarizer-AI                      │
+│                                                             │
+│  📝 Physician Notes  ──► NLP Extraction + Sentiment        │
+│  🧪 Lab Results CSV  ──► Anomaly Detection + Flagging      │
+│  💓 Vitals Stream    ──► Time-Series Analysis               │
+│                              │                              │
+│                              ▼                              │
+│              Cross-Modal Fusion Engine                       │
+│                              │                              │
+│                              ▼                              │
+│         🚨 Actionable Clinical Report + Triage Level        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+### Core Modules
 
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| Language | Python 3.10+ |
-| NLP Framework | NLTK |
-| Web Framework | Streamlit |
-| Data Handling | Pandas, NumPy |
-| Deployment | Streamlit Community Cloud |
+| Module | Technique | Purpose |
+|--------|-----------|---------|
+| Text Summarization | NLTK sentence tokenization + clinical keyword extraction | Extract key clinical sentences from physician notes |
+| Sentiment/Urgency | VADER lexicon + domain-specific urgency keywords | Classify patient state as Routine or Urgent/Critical |
+| Vitals Analysis | Statistical thresholding (HR, SpO2) | Detect tachycardia, bradycardia, hypoxia |
+| Lab Flagging | Rule-based reference range checking | Identify abnormal CBC, metabolic panel values |
+| Cross-Modal Fusion | Conditional logic across all 3 modalities | Generate sepsis alerts, cardiac flags, escalation recommendations |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
-### 📌 Prerequisites
-
-- Python 3.10 or higher  
-- Internet connection (for first-time NLTK downloads)  
-
----
-
-### 🔧 Installation
-
-#### 1️⃣ Clone the Repository
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/amangupta982/Clinical-Summarizer-AI.git
 cd Clinical-Summarizer-AI
-```
-
-#### 2️⃣ Install Dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-#### 3️⃣ Run the Application
+### 2. Run Locally
 
 ```bash
 streamlit run app.py
 ```
 
----
+App opens at `http://localhost:8501`
 
-## ☁️ Live Deployment
+### 3. Try a Sample
 
-Deployed on **Streamlit Community Cloud**
+Paste this into the Physician Notes box and click **Generate Comprehensive Clinical Report**:
 
-🔗 https://clinical-summarizer-ai.streamlit.app
+```
+Patient presents with acute chest pain radiating to the left arm. History of hypertension 
+and type 2 diabetes. Patient denies shortness of breath. Diagnosis: rule out ACS. 
+Treatment initiated with aspirin and nitrates. Vitals currently stable.
+```
 
----
-
-## 🧬 Project Architecture Overview
-
-1. Text preprocessing using NLTK  
-2. Keyword-based clinical filtering  
-3. Lab anomaly detection  
-4. Time-series statistical evaluation  
-5. Heuristic recommendation engine  
-6. Unified summary generation  
+Then select **Cardiac Distress** in the sidebar to simulate deteriorating vitals.
 
 ---
 
-## 🎯 Use Cases
+## 📊 Sample Output
 
-- Clinical decision support  
-- Medical education simulations  
-- Healthcare AI research  
-- Prototype hospital dashboards  
-- AI healthcare hackathons  
+**Patient Scenario: Sepsis Risk**
 
----
+| Metric | Value | Status |
+|--------|-------|--------|
+| Avg Heart Rate | 118 bpm | 🔴 Tachycardic |
+| Avg SpO2 | 91.2% | 🔴 Low |
+| Abnormal Labs | 2 (WBC, Hemoglobin) | ⚠️ Attention Required |
+| Clinical Tone | Urgent/Critical | 🚨 Warning |
 
-## 📈 Future Roadmap
-
-- Transformer-based clinical summarization (BioBERT / ClinicalBERT)  
-- Real-time hospital data streaming  
-- Risk prediction scoring  
-- EHR integration APIs  
-- Secure healthcare cloud deployment  
-- ML-based anomaly detection  
+**Generated Actions:**
+- 🚨 HIGH ALERT: Possible Sepsis detected (Elevated WBC + Tachycardia). Initiate immediate protocol.
+- ⚠️ Patient narrative indicates acute distress aligning with abnormal vitals. Immediate physician review required.
 
 ---
 
-## 👨‍💻 Developed By
+## 🗂️ Project Structure
 
-**Aman Gupta**  
-AI & Machine Learning Developer  
-Focused on building intelligent healthcare automation systems.
+```
+Clinical-Summarizer-AI/
+├── app.py                  # Main Streamlit application
+├── requirements.txt        # Python dependencies
+├── workflow.jpeg           # System architecture diagram
+├── .devcontainer/          # VS Code dev container config
+├── assets/                 # Screenshots and demo GIFs
+│   └── demo.gif            # (add this after recording demo)
+├── sample_data/
+│   └── sample_labs.csv     # Example lab CSV for testing
+├── tests/
+│   └── test_app.py         # Unit tests for core logic
+└── README.md
+```
 
 ---
 
-## 📜 License
+## 🧪 Running Tests
 
-This project is for educational and research purposes only.  
-Not intended for direct clinical deployment without regulatory validation.
+```bash
+pip install pytest
+pytest tests/test_app.py -v
+```
+
+---
+
+## ☁️ Deploy to HuggingFace Spaces (Free)
+
+1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → **Create new Space**
+2. Select **Streamlit** as the SDK
+3. Push this repo to the Space:
+
+```bash
+git remote add space https://huggingface.co/spaces/YOUR_USERNAME/clinical-summarizer
+git push space main
+```
+
+4. Your app is live at `https://huggingface.co/spaces/YOUR_USERNAME/clinical-summarizer`
+
+---
+
+## 🔭 Roadmap
+
+- [ ] Replace keyword extraction with fine-tuned BioBERT summarization model
+- [ ] Add support for FHIR-format patient records (HL7 standard)
+- [ ] Integrate with real-time vitals streaming via WebSockets
+- [ ] Add SHAP-based explainability for lab anomaly flags
+- [ ] Multi-patient dashboard view
+- [ ] Export reports as structured PDF
+
+> 💡 See [open issues](https://github.com/amangupta982/Clinical-Summarizer-AI/issues) — contributions welcome!  
+> Issues labeled [`good first issue`](https://github.com/amangupta982/Clinical-Summarizer-AI/issues?q=label%3A%22good+first+issue%22) are beginner-friendly.
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feat/add-bioBERT-summarizer`
+3. Commit your changes: `git commit -m 'feat: add BioBERT-based clinical summarization'`
+4. Push to the branch: `git push origin feat/add-bioBERT-summarizer`
+5. Open a Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+---
+
+## ⚠️ Disclaimer
+
+This tool is a **research prototype and educational demonstration only**. It is **not intended for clinical use** and should not be used to make real medical decisions. Always consult qualified healthcare professionals.
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+## 👤 Author
+
+**Aman Gupta** · [@amangupta982](https://github.com/amangupta982)  
+[LinkedIn](https://linkedin.com/in/aman-gupta-b617772a6) · [Email](mailto:amanmacair98@gmail.com)
+
+---
+
+*If this project helped you, please consider giving it a ⭐ — it helps others find it!*
