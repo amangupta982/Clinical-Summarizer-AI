@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 import nltk
 import numpy as np
@@ -7,8 +8,6 @@ import streamlit as st
 for resource, path in [
     ("punkt",        "tokenizers/punkt_tab"),
     ("punkt_tab",    "tokenizers/punkt_tab"),
-    ("vader_lexicon","sentiment/vader_lexicon.zip"),
-    ("stopwords",    "corpora/stopwords"),
 ]:
     try:
         nltk.data.find(path)
@@ -16,7 +15,6 @@ for resource, path in [
         nltk.download(resource, quiet=True)
 
 from nltk.tokenize import sent_tokenize
-from nltk.sentiment import SentimentIntensityAnalyzer
 
 # ── Real-world clinical training data ─────────────────────────────────────────
 # Derived from publicly available clinical NLP datasets:
@@ -51,12 +49,6 @@ URGENCY_KEYWORDS = [
     "sepsis", "septic", "unconscious", "collapse", "trauma",
     "fracture", "laceration", "rupture", "perforation",
 ]
-
-# Benign clinical negation phrases — should NOT trigger urgency
-BENIGN_NEGATIVES = {
-    "no", "not", "none", "without", "denies", "negative",
-    "absent", "unremarkable", "afebrile", "non-tender",
-}
 
 # ── Lab reference ranges (based on WHO / ARUP standard adult ranges) ──────────
 LAB_REFERENCE_RANGES = {
@@ -138,27 +130,47 @@ def process_clinical_text(raw_text: str) -> str:
 
 def analyze_sentiment(text: str) -> str:
     """
-    Domain-aware urgency classifier.
-    Fixes VADER's false positives on benign clinical negations
-    (e.g. 'no complaints', 'denies pain' → should be Routine/Stable).
+    Sentence-level urgency classifier for clinical text.
+
+    Root cause of the VADER false-positive bug:
+      'Patient denies shortness of breath. Patient denies chest pain.'
+      VADER scores 'shortness', 'breath', 'chest', 'pain', 'denies' as
+      negative tokens. The compound score drops to ~-0.65, well below any
+      reasonable threshold, making any compound-based or global-word-based
+      approach unreliable.
+
+    Correct approach — sentence-level denial detection:
+      For each sentence that contains an urgency keyword, check whether
+      that SAME sentence also contains a negation/denial word.
+      If yes → the urgency is denied → skip it.
+      If no  → genuine urgency → return Urgent/Critical.
+      If no sentence has undenied urgency → return Routine/Stable.
+
+    This correctly handles:
+      ✅ 'denies chest pain'        → Routine/Stable  (denied in same sentence)
+      ✅ 'no acute distress'        → Routine/Stable  (denied in same sentence)
+      ✅ 'acute myocardial infarct' → Urgent/Critical (not denied)
+      ✅ 'patient in shock'         → Urgent/Critical (not denied)
     """
     if not text:
         return "Neutral"
-    sia = SentimentIntensityAnalyzer()
-    scores = sia.polarity_scores(text)
-    text_lower = text.lower()
 
-    has_urgency_keyword = any(kw in text_lower for kw in URGENCY_KEYWORDS)
+    sentences = sent_tokenize(text)
+    for sentence in sentences:
+        s_lower = sentence.lower()
+        # Check if this sentence contains any urgency keyword
+        has_urgency = any(kw in s_lower for kw in URGENCY_KEYWORDS)
+        if not has_urgency:
+            continue
+        # Urgency found — is it negated within this same sentence?
+        is_denied = bool(re.search(
+            r'\b(denies?|no\b|without|negative|absent|unremarkable|not(?!\s+responding\b))\b',
+            s_lower
+        ))
+        if is_denied:
+            continue   # Urgency is denied — not a real alert
+        return "Urgent/Critical"   # Urgency present and not denied
 
-    words_in_text = set(text_lower.split())
-    purely_benign_negation = (
-        bool(words_in_text & BENIGN_NEGATIVES)
-        and not has_urgency_keyword
-        and scores["compound"] >= -0.3
-    )
-
-    if has_urgency_keyword or (scores["neg"] > 0.30 and not purely_benign_negation):
-        return "Urgent/Critical"
     return "Routine/Stable"
 
 
