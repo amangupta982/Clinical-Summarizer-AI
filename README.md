@@ -17,8 +17,7 @@ A multimodal AI clinical decision-support tool that combines NLP-based text anal
 <!-- Add a GIF here: record your screen using QuickTime (Mac) or OBS, then upload to the repo -->
 <!-- ![Demo GIF](assets/demo.gif) -->
 
-> 🔴 **[Try the Live App →](https://your-huggingface-spaces-link-here)**  
-> *(Deploy to HuggingFace Spaces — free, takes 5 minutes — instructions below)*
+> 🔴 **[Try the Live App →](https://lnkd.in/gpwkQrQD)**  
 
 ---
 
@@ -30,7 +29,7 @@ The system fuses three independent data modalities:
 ┌─────────────────────────────────────────────────────────────┐
 │                  Clinical-Summarizer-AI                     │
 │                                                             │
-│  📝 Physician Notes  ──► NLP Extraction + Sentiment         |
+│  📝 Physician Notes  ──► NLP Extraction + Sentiment         │ 
 │  🧪 Lab Results CSV  ──► Anomaly Detection + Flagging       │
 │  💓 Vitals Stream    ──► Time-Series Analysis               │
 │                              │                              │
