@@ -183,7 +183,7 @@ pytest tests/ -v
 
 This app is deployed on **Streamlit Cloud**:
 
-> 🚀 **[Live App → clinical-summarizer-ai.streamlit.app](https://clinical-summarizer-ai.streamlit.app)**
+> 🚀 **[Live App → clinical-summarizer-ai.streamlit.app](https://aman-clinical-summarizerr.streamlit.app/)**
 
 To deploy your own fork:
 1. Fork this repo on GitHub
