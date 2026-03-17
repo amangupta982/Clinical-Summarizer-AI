@@ -1,14 +1,15 @@
-# 🏥 Clinical Multi-Modal AI Summarizer
+# 🧠 AI Clinical Intelligence Dashboard
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.32-red?logo=streamlit)](https://streamlit.io)
-[![NLTK](https://img.shields.io/badge/NLTK-3.8-green)](https://nltk.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.48-red?logo=streamlit)](https://streamlit.io)
+[![NLTK](https://img.shields.io/badge/NLTK-3.9-green)](https://nltk.org)
+[![Tests](https://img.shields.io/badge/Tests-58%20passed-brightgreen)](#-running-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/🤗%20Live%20Demo-HuggingFace%20Spaces-orange)](https://huggingface.co/spaces)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit%20Cloud-ff4b4b?logo=streamlit)](https://clinical-summarizer-ai.streamlit.app)
 
-> **Synthesizing unstructured physician notes, laboratory data, and time-series vitals into dynamic, context-aware clinical insights — in real time.**
+> **Next-generation clinical decision support — synthesizing unstructured notes, laboratory data, and time-series vitals into actionable, context-aware intelligence.**
 
-A multimodal AI clinical decision-support tool that combines NLP-based text analysis, anomaly detection on lab results, and time-series vital sign monitoring to generate actionable patient summaries for healthcare providers.
+A hospital-grade, multimodal AI clinical intelligence system featuring hybrid reasoning, temporal trend tracking, composite risk scoring, early warning alerts, smart lab interpretation, clinical decision assistance, and PDF report generation — built on NLP text analysis, anomaly detection, and time-series vital sign monitoring.
 
 ---
 
@@ -23,33 +24,59 @@ A multimodal AI clinical decision-support tool that combines NLP-based text anal
 
 ## 🧠 How It Works
 
-The system fuses three independent data modalities:
+The system fuses three independent data modalities through a modular engine architecture:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  Clinical-Summarizer-AI                     │
-│                                                             │
-│  📝 Physician Notes  ──► NLP Extraction + Sentiment         │ 
-│  🧪 Lab Results CSV  ──► Anomaly Detection + Flagging       │
-│  💓 Vitals Stream    ──► Time-Series Analysis               │
-│                              │                              │
-│                              ▼                              │
-│              Cross-Modal Fusion Engine                      │
-│                              │                              │
-│                              ▼                              │
-│         🚨 Actionable Clinical Report + Triage Level        │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│              AI Clinical Intelligence Dashboard                  │
+│                                                                  │
+│  📝 Physician Notes  ──► ai_engine.py                            │
+│     │                    ├─ NLP Extraction + Sentiment            │
+│     │                    ├─ Hybrid Reasoning Engine               │
+│     │                    └─ Context-Aware Correlator              │
+│     │                                                            │
+│  🧪 Lab Results CSV  ──► lab_analyzer.py                         │
+│     │                    ├─ WHO Reference Range Flagging          │
+│     │                    ├─ Severity Scoring (0–10)               │
+│     │                    └─ Medical Explanation Engine            │
+│     │                                                            │
+│  💓 Vitals Stream    ──► vitals_engine.py                        │
+│     │                    ├─ Time-Series Analysis                  │
+│     │                    └─ Temporal Trend Tracker                │
+│     │                                                            │
+│     └──────────────────► insight_generator.py                     │
+│                          ├─ Composite Risk Scorer (0–100)        │
+│                          ├─ Early Warning System (6 patterns)    │
+│                          ├─ Clinical Decision Assistant          │
+│                          └─ Structured Report Generator (PDF)    │
+│                                    │                             │
+│                                    ▼                             │
+│          🚨 AI Intelligence Report + Risk Monitor + Alerts       │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Core Modules
 
-| Module | Technique | Purpose |
-|--------|-----------|---------|
-| Text Summarization | NLTK sentence tokenization + clinical keyword extraction | Extract key clinical sentences from physician notes |
-| Sentiment/Urgency | VADER lexicon + domain-specific urgency keywords | Classify patient state as Routine or Urgent/Critical |
-| Vitals Analysis | Statistical thresholding (HR, SpO2) | Detect tachycardia, bradycardia, hypoxia |
-| Lab Flagging | Rule-based reference range checking | Identify abnormal CBC, metabolic panel values |
-| Cross-Modal Fusion | Conditional logic across all 3 modalities | Generate sepsis alerts, cardiac flags, escalation recommendations |
+| Module | File | Purpose |
+|--------|------|---------|
+| AI Engine | `ai_engine.py` | Clinical text NLP, sentiment analysis, hybrid reasoning, cross-modal correlation detection |
+| Lab Analyzer | `lab_analyzer.py` | WHO reference range flagging, severity scoring (0–10), medical explanations per test |
+| Vitals Engine | `vitals_engine.py` | Scenario-based vital generation, temporal trend tracking, worsening/improvement detection |
+| Insight Generator | `insight_generator.py` | Composite risk scoring, early warning system, clinical decision assistant, report generation |
+| Dashboard | `app.py` | Streamlit UI with premium glassmorphism design, risk gauge, trend charts, PDF export |
+
+### 🔥 Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🧠 Hybrid Reasoning | Doctor-friendly summaries with confidence scoring |
+| 📈 Temporal Intelligence | Track vitals across sessions, detect deterioration trends |
+| 🧬 Smart Lab Interpretation | Severity bars, medical explanations per abnormal test |
+| ⚠️ Early Warning System | 6 pattern-based alerts (sepsis, cardiac, respiratory, renal, metabolic, anemia) |
+| 📊 Risk Score Gauge | Composite 0–100 risk score combining all modalities |
+| 🧑‍⚕️ Clinical Decision Assistant | Suggested next steps, possible conditions, monitoring plans |
+| 🔗 Context-Aware Correlations | Cross-modal pattern detection (e.g., fever text + high HR + elevated WBC) |
+| 📄 PDF Report Export | Full structured clinical intelligence report with PDF download |
 
 ---
 
@@ -73,7 +100,7 @@ App opens at `http://localhost:8501`
 
 ### 3. Try a Sample
 
-Paste this into the Physician Notes box and click **Generate Comprehensive Clinical Report**:
+Paste this into the Physician Notes box and click **Generate Comprehensive Clinical Intelligence Report**:
 
 ```
 Patient presents with acute chest pain radiating to the left arm. History of hypertension 
@@ -82,6 +109,8 @@ Treatment initiated with aspirin and nitrates. Vitals currently stable.
 ```
 
 Then select **Cardiac Distress** in the sidebar to simulate deteriorating vitals.
+
+> 💡 **Tip:** Click "Generate" multiple times to see temporal trend tracking in action — the system tracks vitals across sessions and detects worsening/improvement patterns.
 
 ---
 
@@ -95,10 +124,21 @@ Then select **Cardiac Distress** in the sidebar to simulate deteriorating vitals
 | Avg SpO2 | 91.2% | 🔴 Low |
 | Abnormal Labs | 2 (WBC, Hemoglobin) | ⚠️ Attention Required |
 | Clinical Tone | Urgent/Critical | 🚨 Warning |
+| Risk Score | 87/100 | 🔴 HIGH RISK |
+| Confidence | 85% | ✅ High |
 
 **Generated Actions:**
 - 🚨 HIGH ALERT: Possible Sepsis detected (Elevated WBC + Tachycardia). Initiate immediate protocol.
 - ⚠️ Patient narrative indicates acute distress aligning with abnormal vitals. Immediate physician review required.
+
+**Early Warning Alerts:**
+- 🔴 Sepsis Risk Increasing — Elevated WBC + tachycardia suggests systemic infection
+- 🔴 Cardiac Instability Detected — Abnormal HR with low SpO₂
+
+**AI Clinical Assistant:**
+- Consider 12-lead ECG to rule out arrhythmia
+- Order blood cultures and complete differential
+- May indicate: Sepsis / SIRS criteria
 
 ---
 
@@ -106,7 +146,11 @@ Then select **Cardiac Distress** in the sidebar to simulate deteriorating vitals
 
 ```
 Clinical-Summarizer-AI/
-├── app.py                  # Main Streamlit application
+├── app.py                  # Main Streamlit dashboard (UI + orchestration)
+├── ai_engine.py            # Clinical text NLP, hybrid reasoning, context correlator
+├── lab_analyzer.py         # Smart lab analysis, severity scoring, medical explanations
+├── vitals_engine.py        # Vitals generation, temporal trend tracking
+├── insight_generator.py    # Risk scoring, early warnings, decision support, reports
 ├── requirements.txt        # Python dependencies
 ├── workflow.jpeg           # System architecture diagram
 ├── .devcontainer/          # VS Code dev container config
@@ -115,7 +159,8 @@ Clinical-Summarizer-AI/
 ├── sample_data/
 │   └── sample_labs.csv     # Example lab CSV for testing
 ├── tests/
-│   └── test_app.py         # Unit tests for core logic
+│   ├── test_app.py         # Unit tests for core logic (32 tests)
+│   └── test_modules.py     # Unit tests for new modules (26 tests)
 └── README.md
 ```
 
@@ -125,12 +170,28 @@ Clinical-Summarizer-AI/
 
 ```bash
 pip install pytest
-pytest tests/test_app.py -v
+pytest tests/ -v
 ```
+
+> **58 tests** across 2 test files — 32 original + 26 new module tests.
 
 ---
 
-## ☁️ Deploy to HuggingFace Spaces (Free)
+## ☁️ Deployment
+
+### Streamlit Cloud (Live)
+
+This app is deployed on **Streamlit Cloud**:
+
+> 🚀 **[Live App → clinical-summarizer-ai.streamlit.app](https://clinical-summarizer-ai.streamlit.app)**
+
+To deploy your own fork:
+1. Fork this repo on GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io) → **New app**
+3. Select your forked repo, branch `main`, file `app.py`
+4. Click **Deploy** — your app is live!
+
+### HuggingFace Spaces (Alternative)
 
 1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → **Create new Space**
 2. Select **Streamlit** as the SDK
@@ -147,12 +208,21 @@ git push space main
 
 ## 🔭 Roadmap
 
+- [x] Modular engine architecture (ai_engine, lab_analyzer, vitals_engine, insight_generator)
+- [x] Hybrid reasoning engine with confidence scoring
+- [x] Temporal vitals tracking with trend detection
+- [x] Smart lab interpretation with severity scoring & medical explanations
+- [x] Composite risk scoring (0–100) with visual gauge
+- [x] Early warning system (sepsis, cardiac, respiratory, renal, metabolic, anemia)
+- [x] Clinical decision assistant with safe-language suggestions
+- [x] Cross-modal correlation detection
+- [x] Export reports as structured PDF
 - [ ] Replace keyword extraction with fine-tuned BioBERT summarization model
 - [ ] Add support for FHIR-format patient records (HL7 standard)
 - [ ] Integrate with real-time vitals streaming via WebSockets
 - [ ] Add SHAP-based explainability for lab anomaly flags
 - [ ] Multi-patient dashboard view
-- [ ] Export reports as structured PDF
+- [ ] LLM integration (OpenAI / HuggingFace) for enhanced reasoning
 
 > 💡 See [open issues](https://github.com/amangupta982/Clinical-Summarizer-AI/issues) — contributions welcome!  
 > Issues labeled [`good first issue`](https://github.com/amangupta982/Clinical-Summarizer-AI/issues?q=label%3A%22good+first+issue%22) are beginner-friendly.
