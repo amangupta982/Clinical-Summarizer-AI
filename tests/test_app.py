@@ -9,14 +9,10 @@ import sys, os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import (
-    process_clinical_text,
-    analyze_sentiment,
-    analyze_vitals,
-    get_actionable_insights,
-    generate_scenario_vitals,
-    auto_flag_labs,
-)
+from ai_engine import process_clinical_text, analyze_sentiment
+from vitals_engine import analyze_vitals, generate_scenario_vitals
+from insight_generator import get_actionable_insights
+from lab_analyzer import auto_flag_labs
 
 
 class TestProcessClinicalText:
