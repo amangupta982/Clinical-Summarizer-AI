@@ -3,6 +3,8 @@ import pandas as pd
 import nltk
 import numpy as np
 import streamlit as st
+import datetime
+import io
 
 # ── NLTK bootstrap ─────────────────────────────────────────────────────────────
 for resource, path in [
@@ -16,68 +18,36 @@ for resource, path in [
 
 from nltk.tokenize import sent_tokenize
 
-# ── Real-world clinical training data ─────────────────────────────────────────
-# Derived from publicly available clinical NLP datasets:
-# - MTSamples (mtsamples.com) — de-identified medical transcriptions
-# - MIMIC-III clinical notes patterns (PhysioNet)
-# - CDC clinical scenario descriptions
-# These keyword weights were calibrated against 200+ real clinical notes.
+# ── Import new engine modules ──────────────────────────────────────────────────
+from ai_engine import (
+    CLINICAL_KEYWORDS, URGENCY_KEYWORDS, SAMPLE_NOTES,
+    process_clinical_text, analyze_sentiment,
+    HybridReasoningEngine, ContextCorrelator,
+)
+from lab_analyzer import (
+    LAB_REFERENCE_RANGES, DEFAULT_LABS,
+    auto_flag_labs, compute_lab_severity,
+    get_lab_interpretation, get_detailed_lab_analysis,
+)
+from vitals_engine import (
+    generate_scenario_vitals, analyze_vitals,
+    TemporalTracker,
+)
+from insight_generator import (
+    get_actionable_insights,
+    CompositeRiskScorer, EarlyWarningSystem,
+    ClinicalDecisionAssistant, generate_structured_report,
+)
 
-CLINICAL_KEYWORDS = {
-    # High-weight: direct clinical findings (weight 3)
-    "diagnosis":    3, "presents":    3, "diagnosed":    3,
-    "findings":     3, "impression":  3, "assessment":   3,
-    "complains":    3, "complaint":   3, "chief":        3,
-    # Medium-weight: patient context (weight 2)
-    "patient":      2, "history":     2, "treatment":    2,
-    "medication":   2, "prescribed":  2, "administered": 2,
-    "procedure":    2, "surgery":     2, "symptoms":     2,
-    "examination":  2, "reviewed":    2,
-    # Standard clinical terms (weight 1)
-    "pain":         1, "stable":      1, "denies":       1,
-    "fever":        1, "breath":      1, "chest":        1,
-    "blood":        1, "pressure":    1, "pulse":        1,
-    "temperature":  1, "discharge":   1, "allerg":       1,
-    "nausea":       1, "vomiting":    1, "fatigue":      1,
-    "swelling":     1, "infection":   1, "wound":        1,
-}
+# ── PDF export (optional) ─────────────────────────────────────────────────────
+try:
+    from fpdf import FPDF
+    HAS_FPDF = True
+except ImportError:
+    HAS_FPDF = False
 
-# Urgency keywords — calibrated from ICU triage protocols
-URGENCY_KEYWORDS = [
-    "acute", "distressed", "severe", "emergency", "critical",
-    "deteriorat", "unresponsive", "arrest", "hemorrhage", "shock",
-    "sepsis", "septic", "unconscious", "collapse", "trauma",
-    "fracture", "laceration", "rupture", "perforation",
-]
-
-# ── Lab reference ranges (based on WHO / ARUP standard adult ranges) ──────────
-LAB_REFERENCE_RANGES = {
-    "Hemoglobin":   {"unit": "g/dL",   "low": 13.5, "high": 17.5,
-                     "critical_low": 7.0,  "critical_high": 20.0},
-    "WBC":          {"unit": "10³/µL", "low": 4.5,  "high": 11.0,
-                     "critical_low": 2.0,  "critical_high": 30.0},
-    "Creatinine":   {"unit": "mg/dL",  "low": 0.7,  "high": 1.3,
-                     "critical_low": 0.0,  "critical_high": 10.0},
-    "Glucose":      {"unit": "mg/dL",  "low": 70.0, "high": 100.0,
-                     "critical_low": 40.0, "critical_high": 500.0},
-    "Platelets":    {"unit": "10³/µL", "low": 150,  "high": 400,
-                     "critical_low": 50,   "critical_high": 1000},
-    "Sodium":       {"unit": "mEq/L",  "low": 136,  "high": 145,
-                     "critical_low": 120,  "critical_high": 160},
-    "Potassium":    {"unit": "mEq/L",  "low": 3.5,  "high": 5.1,
-                     "critical_low": 2.5,  "critical_high": 6.5},
-    "ALT":          {"unit": "U/L",    "low": 7,    "high": 56,
-                     "critical_low": 0,    "critical_high": 1000},
-}
-
-DEFAULT_LABS = pd.DataFrame({
-    "Test":   ["Hemoglobin", "WBC",   "Creatinine", "Glucose", "Platelets", "Sodium"],
-    "Result": [10.5,          14.2,    0.9,           115.0,     220,         138],
-    "Unit":   ["g/dL",       "10³/µL","mg/dL",       "mg/dL",  "10³/µL",   "mEq/L"],
-    "Status": ["Low",         "High",  "Normal",      "High",   "Normal",   "Normal"],
-})
-
-# ── MTSamples-derived sample notes (real de-identified patterns) ───────────────
+# ── MTSamples-derived sample notes ────────────────────────────────────────────
+# Re-exported from ai_engine for backward compatibility — also kept here inline.
 SAMPLE_NOTES = {
     "Sepsis (ICU)": (
         "Patient is a 67-year-old male presenting with acute fever of 39.8°C, rigors, and confusion. "
@@ -106,182 +76,6 @@ SAMPLE_NOTES = {
     ),
 }
 
-# ── Backend Logic ──────────────────────────────────────────────────────────────
-
-def process_clinical_text(raw_text: str) -> str:
-    """
-    Keyword-density sentence ranking trained on MTSamples patterns.
-    Returns top-5 highest-scoring clinical sentences.
-    """
-    if not raw_text:
-        return ""
-    sentences = sent_tokenize(raw_text)
-    scored = []
-    for s in sentences:
-        s_lower = s.lower()
-        score = sum(weight for kw, weight in CLINICAL_KEYWORDS.items() if kw in s_lower)
-        if score > 0:
-            scored.append((score, s))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    if not scored:
-        return "❌ No relevant clinical information detected. Please ensure notes contain clinical context."
-    return " ".join(s for _, s in scored[:5])
-
-
-def analyze_sentiment(text: str) -> str:
-    """
-    Sentence-level urgency classifier for clinical text.
-
-    Root cause of the VADER false-positive bug:
-      'Patient denies shortness of breath. Patient denies chest pain.'
-      VADER scores 'shortness', 'breath', 'chest', 'pain', 'denies' as
-      negative tokens. The compound score drops to ~-0.65, well below any
-      reasonable threshold, making any compound-based or global-word-based
-      approach unreliable.
-
-    Correct approach — sentence-level denial detection:
-      For each sentence that contains an urgency keyword, check whether
-      that SAME sentence also contains a negation/denial word.
-      If yes → the urgency is denied → skip it.
-      If no  → genuine urgency → return Urgent/Critical.
-      If no sentence has undenied urgency → return Routine/Stable.
-
-    This correctly handles:
-      ✅ 'denies chest pain'        → Routine/Stable  (denied in same sentence)
-      ✅ 'no acute distress'        → Routine/Stable  (denied in same sentence)
-      ✅ 'acute myocardial infarct' → Urgent/Critical (not denied)
-      ✅ 'patient in shock'         → Urgent/Critical (not denied)
-    """
-    if not text:
-        return "Neutral"
-
-    sentences = sent_tokenize(text)
-    for sentence in sentences:
-        s_lower = sentence.lower()
-        # Check if this sentence contains any urgency keyword
-        has_urgency = any(kw in s_lower for kw in URGENCY_KEYWORDS)
-        if not has_urgency:
-            continue
-        # Urgency found — is it negated within this same sentence?
-        is_denied = bool(re.search(
-            r'\b(denies?|no\b|without|negative|absent|unremarkable|not(?!\s+responding\b))\b',
-            s_lower
-        ))
-        if is_denied:
-            continue   # Urgency is denied — not a real alert
-        return "Urgent/Critical"   # Urgency present and not denied
-
-    return "Routine/Stable"
-
-
-def generate_scenario_vitals(scenario: str) -> pd.DataFrame:
-    """
-    Generate 12-point vitals time series.
-    Ranges calibrated from MIMIC-III ICU mean vitals per condition.
-    """
-    rng = np.random.default_rng()
-    if scenario == "Sepsis Risk":
-        hr   = rng.integers(105, 131, size=12)
-        spo2 = rng.integers(89,  95,  size=12)
-    elif scenario == "Cardiac Distress":
-        hr   = rng.integers(45,  58,  size=12)
-        spo2 = rng.integers(85,  93,  size=12)
-    else:
-        hr   = rng.integers(65,  86,  size=12)
-        spo2 = rng.integers(96, 101,  size=12)
-    return pd.DataFrame({"Heart Rate (bpm)": hr, "SpO₂ (%)": spo2})
-
-
-def analyze_vitals(df: pd.DataFrame) -> tuple:
-    avg_hr   = df["Heart Rate (bpm)"].mean()
-    avg_spo2 = df["SpO₂ (%)"].mean()
-    if avg_hr > 100:
-        status = "Tachycardic"
-    elif avg_hr < 60:
-        status = "Bradycardic"
-    else:
-        status = "Normal"
-    return avg_hr, avg_spo2, status
-
-
-def auto_flag_labs(lab_df: pd.DataFrame) -> pd.DataFrame:
-    """Auto-compute Status + Critical flag from WHO reference ranges."""
-    lab_df = lab_df.copy()
-    if "Status" not in lab_df.columns:
-        lab_df["Status"] = "Normal"
-    if "Critical" not in lab_df.columns:
-        lab_df["Critical"] = False
-
-    for idx, row in lab_df.iterrows():
-        test = row.get("Test", "")
-        if test in LAB_REFERENCE_RANGES:
-            ref    = LAB_REFERENCE_RANGES[test]
-            result = float(row.get("Result", 0))
-            if result < ref["low"]:
-                lab_df.at[idx, "Status"] = "Low"
-            elif result > ref["high"]:
-                lab_df.at[idx, "Status"] = "High"
-            else:
-                lab_df.at[idx, "Status"] = "Normal"
-            lab_df.at[idx, "Critical"] = (
-                result <= ref["critical_low"] or result >= ref["critical_high"]
-            )
-    return lab_df
-
-
-def get_actionable_insights(abnormal_labs, vital_status, text_sentiment):
-    """Priority-tiered cross-modal clinical recommendations."""
-    actions = []
-
-    # Tier 1 — Critical cross-modal alerts
-    if "WBC" in abnormal_labs and vital_status == "Tachycardic":
-        actions.append(("critical",
-            "🚨 Possible Sepsis: Elevated WBC + Tachycardia detected. "
-            "Initiate SIRS/Sepsis protocol immediately. Draw blood cultures."))
-    if text_sentiment == "Urgent/Critical" and vital_status != "Normal":
-        actions.append(("critical",
-            "⚠️ Acute distress narrative aligns with abnormal vitals. "
-            "Immediate physician review required."))
-
-    # Tier 2 — Lab-driven warnings
-    if "Hemoglobin" in abnormal_labs:
-        actions.append(("warning",
-            "🩸 Low Hemoglobin: Order CBC re-check and iron panel. "
-            "Review transfusion threshold (consider if Hgb < 7 g/dL)."))
-    if "WBC" in abnormal_labs and not any("Sepsis" in a[1] for a in actions):
-        actions.append(("warning",
-            "🦠 Elevated WBC: Monitor for localized infection. "
-            "Blood culture and differential recommended."))
-    if "Potassium" in abnormal_labs:
-        actions.append(("warning",
-            "⚡ Abnormal Potassium: Arrhythmia risk. "
-            "12-lead ECG recommended. Begin electrolyte replacement protocol."))
-    if "Glucose" in abnormal_labs:
-        actions.append(("info",
-            "🍬 Abnormal Glucose: Check HbA1c. "
-            "Review current diabetic medication regimen with endocrinology."))
-    if "Creatinine" in abnormal_labs:
-        actions.append(("warning",
-            "🫘 Elevated Creatinine: Monitor renal function (BUN, eGFR). "
-            "Hold nephrotoxic agents. Urology or nephrology consult if persists."))
-    if "Sodium" in abnormal_labs:
-        actions.append(("warning",
-            "💧 Abnormal Sodium: Assess fluid balance and hydration status. "
-            "Gradual correction protocol — avoid rapid shifts."))
-
-    # Tier 3 — Vital-sign driven
-    if vital_status != "Normal" and not any(a[0] == "critical" for a in actions):
-        actions.append(("warning",
-            f"💓 {vital_status} detected: Continuous cardiac monitoring advised. "
-            "ECHO/ECG recommended."))
-
-    # Default
-    if not actions:
-        actions.append(("success",
-            "✅ All parameters within acceptable range. "
-            "Continue routine observation and standard care protocols."))
-    return actions
-
 
 def style_lab_status(val):
     if val == "High":
@@ -295,60 +89,249 @@ def style_lab_status(val):
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Clinical AI Summarizer",
-    page_icon="🏥",
+    page_title="AI Clinical Intelligence Dashboard",
+    page_icon="🧠",
     layout="wide",
 )
 
-# Minimal CSS — only what Streamlit can't do natively, theme-safe
+# ── Premium CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Tighten metric card padding */
+    /* ── Import premium font ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    /* ── Global font (exclude Material Icon elements) ── */
+    html, body,
+    h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, input, textarea, button {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Header gradient banner ── */
+    .main-header {
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        border-radius: 16px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(255,255,255,0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(78,140,255,0.15) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    .main-header h1 {
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 0.3rem 0;
+        letter-spacing: -0.5px;
+    }
+    .main-header p {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.95rem;
+        margin: 0;
+        font-weight: 300;
+    }
+
+    /* ── Metric cards — glassmorphism ── */
     [data-testid="stMetric"] {
         background: rgba(128,128,128,0.07);
-        border-radius: 10px;
-        padding: 0.8rem 1rem;
-        border: 1px solid rgba(128,128,128,0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 1rem 1.2rem;
+        border: 1px solid rgba(128,128,128,0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    /* Action alert boxes — theme-safe semi-transparent backgrounds */
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    /* ── Alert boxes ── */
     .alert-critical {
         border-left: 4px solid #ff4b4b;
         background: rgba(255, 75, 75, 0.08);
-        border-radius: 0 8px 8px 0;
-        padding: 0.75rem 1rem;
-        margin: 0.4rem 0;
-        font-size: 0.9rem;
-        line-height: 1.5;
+        border-radius: 0 10px 10px 0;
+        padding: 0.8rem 1.1rem;
+        margin: 0.45rem 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
     }
     .alert-warning {
         border-left: 4px solid #ff8c00;
         background: rgba(255, 140, 0, 0.08);
-        border-radius: 0 8px 8px 0;
-        padding: 0.75rem 1rem;
-        margin: 0.4rem 0;
-        font-size: 0.9rem;
-        line-height: 1.5;
+        border-radius: 0 10px 10px 0;
+        padding: 0.8rem 1.1rem;
+        margin: 0.45rem 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
     }
     .alert-info {
         border-left: 4px solid #4e8cff;
         background: rgba(78, 140, 255, 0.08);
-        border-radius: 0 8px 8px 0;
-        padding: 0.75rem 1rem;
-        margin: 0.4rem 0;
-        font-size: 0.9rem;
-        line-height: 1.5;
+        border-radius: 0 10px 10px 0;
+        padding: 0.8rem 1.1rem;
+        margin: 0.45rem 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
     }
     .alert-success {
         border-left: 4px solid #09ab3b;
         background: rgba(9, 171, 59, 0.08);
-        border-radius: 0 8px 8px 0;
-        padding: 0.75rem 1rem;
-        margin: 0.4rem 0;
-        font-size: 0.9rem;
-        line-height: 1.5;
+        border-radius: 0 10px 10px 0;
+        padding: 0.8rem 1.1rem;
+        margin: 0.45rem 0;
+        font-size: 0.88rem;
+        line-height: 1.55;
     }
+
+    /* ── Risk gauge ── */
+    .risk-gauge-container {
+        text-align: center;
+        padding: 1.5rem;
+    }
+    .risk-gauge {
+        position: relative;
+        width: 200px;
+        height: 110px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+    .risk-gauge-bg {
+        width: 200px;
+        height: 100px;
+        border-radius: 100px 100px 0 0;
+        background: conic-gradient(
+            from 0.75turn at 50% 100%,
+            #09ab3b 0deg,
+            #ffcc00 90deg,
+            #ff8c00 135deg,
+            #ff4b4b 180deg
+        );
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .risk-gauge-mask {
+        width: 160px;
+        height: 80px;
+        border-radius: 80px 80px 0 0;
+        background: var(--background-color, #0e1117);
+        position: absolute;
+        top: 20px;
+        left: 20px;
+    }
+    .risk-gauge-needle {
+        width: 3px;
+        height: 70px;
+        background: #fff;
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform-origin: bottom center;
+        border-radius: 2px;
+        transition: transform 0.6s ease;
+    }
+    .risk-gauge-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-top: 0.5rem;
+    }
+    .risk-gauge-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin-top: 0.2rem;
+    }
+
+    /* ── Severity bar ── */
+    .severity-bar-track {
+        height: 8px;
+        background: rgba(128,128,128,0.15);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 2px 0;
+    }
+    .severity-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    /* ── Section cards ── */
+    .section-card {
+        background: rgba(128,128,128,0.04);
+        border-radius: 12px;
+        padding: 1.2rem 1.4rem;
+        border: 1px solid rgba(128,128,128,0.1);
+        margin-bottom: 1rem;
+    }
+    .section-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: rgba(128,128,128,0.6);
+        margin-bottom: 0.6rem;
+    }
+
+    /* ── Early warning pulse animation ── */
+    @keyframes pulse-alert {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    .ew-alert {
+        animation: pulse-alert 2s ease-in-out infinite;
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+        margin: 0.4rem 0;
+        font-size: 0.88rem;
+    }
+    .ew-critical {
+        background: rgba(255, 75, 75, 0.12);
+        border: 1px solid rgba(255, 75, 75, 0.3);
+    }
+    .ew-warning {
+        background: rgba(255, 140, 0, 0.12);
+        border: 1px solid rgba(255, 140, 0, 0.3);
+    }
+    .ew-info {
+        background: rgba(78, 140, 255, 0.12);
+        border: 1px solid rgba(78, 140, 255, 0.3);
+    }
+
+    /* ── Correlation badge ── */
+    .corr-badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    .corr-strong { background: rgba(255,75,75,0.15); color: #ff4b4b; }
+    .corr-moderate { background: rgba(255,140,0,0.15); color: #ff8c00; }
 </style>
 """, unsafe_allow_html=True)
+
+# ── Initialize session state ──────────────────────────────────────────────────
+if "temporal_tracker" not in st.session_state:
+    st.session_state.temporal_tracker = TemporalTracker()
+
+# ── Initialize engine instances ───────────────────────────────────────────────
+reasoning_engine  = HybridReasoningEngine()
+context_correlator = ContextCorrelator()
+risk_scorer       = CompositeRiskScorer()
+warning_system    = EarlyWarningSystem()
+decision_assistant = ClinicalDecisionAssistant()
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -378,26 +361,39 @@ with st.sidebar:
             st.caption(f"**{test}**: {ref['low']}–{ref['high']} {ref['unit']}")
 
     st.divider()
+    st.subheader("📊 Temporal Data")
+    tracker = st.session_state.temporal_tracker
+    st.caption(f"Readings tracked: **{len(tracker.history)}**")
+    if st.button("🗑️ Reset Temporal History", use_container_width=True):
+        st.session_state.temporal_tracker = TemporalTracker()
+        st.rerun()
+
+    st.divider()
     st.caption(
         "⚠️ **Research prototype only.**  \n"
         "Not for clinical use. Always consult qualified healthcare professionals."
     )
 
 # ── Header ─────────────────────────────────────────────────────────────────────
-st.title("🏥 Clinical Multi-Modal AI Summarizer")
-st.markdown(
-    "Synthesizing **Unstructured Notes**, **Laboratory Data**, and "
-    "**Time-Series Vitals** into dynamic, context-aware insights."
-)
+st.markdown("""
+<div class="main-header">
+    <h1>🧠 AI Clinical Intelligence Dashboard</h1>
+    <p>Next-generation clinical decision support — synthesizing unstructured notes,
+    laboratory data, and time-series vitals into actionable, context-aware intelligence.</p>
+</div>
+""", unsafe_allow_html=True)
+
 st.divider()
 
-# ── Input columns ──────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: PATIENT INPUT
+# ══════════════════════════════════════════════════════════════════════════════
+st.markdown('<div class="section-title">📝 PATIENT INPUT</div>', unsafe_allow_html=True)
+
 col1, col2 = st.columns([1, 1])
 
 with col1:
     st.subheader("1. Physician Notes")
-
-    # Pre-fill from sidebar sample selector
     prefill = SAMPLE_NOTES.get(selected_sample, "")
     user_notes = st.text_area(
         "Input clinical narrative...",
@@ -430,7 +426,6 @@ with col2:
         st.caption("Using default demo labs. Upload your own CSV to analyse real data.")
 
     # Show critical flag visually
-    display_df = lab_df[["Test", "Result", "Unit", "Status"]].copy() if "Critical" in lab_df.columns else lab_df
     st.dataframe(
         lab_df[["Test", "Result", "Unit", "Status"]].style.map(style_lab_status, subset=["Status"]),
         use_container_width=True,
@@ -454,11 +449,12 @@ with col2:
 st.divider()
 
 # ── Generate button ────────────────────────────────────────────────────────────
-if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_container_width=True):
+if st.button("🔍 Generate Comprehensive Clinical Intelligence Report", type="primary", use_container_width=True):
     if not user_notes.strip():
         st.warning("Please provide clinical notes to generate a summary.")
     else:
-        with st.spinner("Processing Multi-Modal Data..."):
+        with st.spinner("Processing Multi-Modal Data... Analyzing across all modalities..."):
+            # ── Core analysis (existing logic, now from modules) ──────────────
             cleaned_text    = process_clinical_text(user_notes)
             text_sentiment  = analyze_sentiment(user_notes)
             avg_hr, avg_spo2, hr_status = analyze_vitals(chart_data)
@@ -466,9 +462,60 @@ if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_
             abnormal_labs   = lab_df_flagged[lab_df_flagged["Status"] != "Normal"]["Test"].tolist()
             recommendations = get_actionable_insights(abnormal_labs, hr_status, text_sentiment)
 
-        # ── Metrics ───────────────────────────────────────────────────────────
+            # ── NEW: Advanced intelligence ────────────────────────────────────
+            lab_analyses     = get_detailed_lab_analysis(lab_df)
+            lab_severities   = [la["severity"] for la in lab_analyses if la["severity"] > 0]
+            critical_labs    = [la for la in lab_analyses if la["critical"]]
+
+            # Risk scoring
+            risk_score, risk_label, risk_triggers = risk_scorer.compute(
+                text_sentiment, hr_status, abnormal_labs, avg_spo2, lab_severities
+            )
+
+            # Hybrid reasoning
+            clinical_summary = reasoning_engine.generate_clinical_summary(
+                cleaned_text, hr_status, avg_hr, avg_spo2,
+                abnormal_labs, text_sentiment, lab_analyses
+            )
+            confidence = reasoning_engine.compute_confidence(
+                text_sentiment, hr_status, abnormal_labs, critical_labs
+            )
+
+            # Early warnings
+            early_warnings = warning_system.evaluate(
+                text_sentiment, hr_status, abnormal_labs, avg_spo2
+            )
+
+            # Context correlations
+            correlations = context_correlator.detect_correlations(
+                user_notes, hr_status, abnormal_labs
+            )
+
+            # Clinical decision support
+            suggestions = decision_assistant.generate_suggestions(
+                text_sentiment, hr_status, abnormal_labs,
+                avg_spo2, avg_hr, lab_analyses
+            )
+
+            # Temporal tracking
+            tracker = st.session_state.temporal_tracker
+            tracker.record(avg_hr, avg_spo2, hr_status)
+            trend_summary = tracker.get_trend_summary()
+            trend_data    = tracker.detect_worsening()
+
+            # Risk explanation
+            risk_explanation = reasoning_engine.explain_risk(
+                risk_label, risk_score, risk_triggers
+            )
+
+        # ══════════════════════════════════════════════════════════════════════
+        # SECTION 2: AI INSIGHTS
+        # ══════════════════════════════════════════════════════════════════════
+        st.markdown('<div class="section-title">🧠 AI INSIGHTS</div>', unsafe_allow_html=True)
+
+        # ── Metrics ──────────────────────────────────────────────────────────
         st.subheader("Patient Snapshot")
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3, m4, m5 = st.columns(5)
 
         m1.metric(
             "Avg Heart Rate", f"{avg_hr:.0f} bpm", delta=hr_status,
@@ -489,6 +536,99 @@ if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_
             delta="Warning" if text_sentiment == "Urgent/Critical" else "Stable",
             delta_color="inverse" if text_sentiment == "Urgent/Critical" else "normal",
         )
+        m5.metric(
+            "Confidence", f"{confidence}%",
+            delta="High" if confidence >= 70 else "Moderate",
+            delta_color="normal" if confidence >= 70 else "off",
+        )
+
+        # ══════════════════════════════════════════════════════════════════════
+        # SECTION 3: RISK MONITOR
+        # ══════════════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown('<div class="section-title">⚠️ RISK MONITOR</div>', unsafe_allow_html=True)
+
+        risk_col1, risk_col2 = st.columns([1, 2])
+
+        with risk_col1:
+            # Risk gauge visualization
+            needle_angle = -90 + (risk_score / 100) * 180
+            if risk_score >= 70:
+                gauge_color = "#ff4b4b"
+            elif risk_score >= 40:
+                gauge_color = "#ff8c00"
+            else:
+                gauge_color = "#09ab3b"
+
+            st.markdown(f"""
+            <div class="risk-gauge-container">
+                <div class="risk-gauge">
+                    <div class="risk-gauge-bg"></div>
+                    <div class="risk-gauge-mask"></div>
+                    <div class="risk-gauge-needle" style="transform: rotate({needle_angle}deg);"></div>
+                </div>
+                <div class="risk-gauge-value" style="color: {gauge_color};">{risk_score}</div>
+                <div class="risk-gauge-label" style="color: {gauge_color};">{risk_label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with risk_col2:
+            # Early warning alerts
+            if early_warnings:
+                st.markdown("**🚨 Active Alerts:**")
+                for ew in early_warnings:
+                    sev_class = f"ew-{ew['severity']}"
+                    st.markdown(
+                        f'<div class="ew-alert {sev_class}">'
+                        f'<strong>{ew["alert"]}</strong><br/>'
+                        f'<span style="font-size:0.82rem;opacity:0.85;">{ew["detail"]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.success("✅ No early warning alerts triggered.")
+
+            # Risk explanation
+            st.markdown("**Risk Analysis:**")
+            st.markdown(risk_explanation)
+
+        # ── Temporal Trend ────────────────────────────────────────────────────
+        st.divider()
+        trend_col1, trend_col2 = st.columns([1, 1])
+
+        with trend_col1:
+            st.markdown("**📈 Temporal Vitals Trend**")
+            history_df = tracker.get_history_df()
+            if len(history_df) >= 2:
+                chart_df = history_df.set_index("Reading #")
+                st.line_chart(chart_df, height=220)
+            else:
+                st.info("Generate multiple reports to see temporal trends.")
+
+        with trend_col2:
+            st.markdown("**📊 Trend Analysis**")
+            st.markdown(trend_summary)
+
+            if trend_data["overall"] == "deteriorating":
+                st.error("⚠️ Patient condition showing signs of deterioration. "
+                         "Consider increasing monitoring frequency.")
+            elif trend_data["overall"] == "improving":
+                st.success("✅ Patient condition showing improvement trends.")
+
+        # ── Context Correlations ──────────────────────────────────────────────
+        if correlations:
+            st.divider()
+            st.markdown("**🔗 Cross-Modal Correlations Detected:**")
+            for corr in correlations:
+                badge_class = "corr-strong" if corr["strength"] == "Strong" else "corr-moderate"
+                st.markdown(
+                    f'<div class="section-card">'
+                    f'<span class="corr-badge {badge_class}">{corr["strength"]}</span> '
+                    f'<strong>{corr["condition"]}</strong><br/>'
+                    f'<span style="font-size:0.88rem;">{corr["alert"]}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
 
         # ── Triage banner ─────────────────────────────────────────────────────
         is_critical = (
@@ -503,6 +643,10 @@ if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_
         else:
             st.info("### 📋 Clinical Summary: Stable")
 
+        # ── AI Clinical Summary ───────────────────────────────────────────────
+        st.markdown("**🧠 AI-Generated Clinical Summary:**")
+        st.markdown(clinical_summary)
+
         # ── Summary + Labs + Actions ──────────────────────────────────────────
         c1, c2 = st.columns([3, 2])
 
@@ -510,18 +654,51 @@ if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_
             st.markdown("**Patient History & Presenting Illness:**")
             st.markdown(f"> {cleaned_text}")
 
-            st.markdown("**Significant Lab Findings:**")
+            # ── Smart Lab Findings with Severity Bars ─────────────────────────
+            st.markdown("**📊 Detailed Lab Analysis:**")
             if abnormal_labs:
-                for lab in abnormal_labs:
-                    row = lab_df_flagged[lab_df_flagged["Test"] == lab].iloc[0]
-                    color = "#ff4b4b" if row["Status"] == "High" else "#ff8c00"
-                    is_crit = row.get("Critical", False)
-                    crit_tag = " 🔴 **CRITICAL VALUE**" if is_crit else ""
+                for la in lab_analyses:
+                    if la["status"] == "Normal":
+                        continue
+                    color = "#ff4b4b" if la["status"] == "High" else "#ff8c00"
+                    sev = la["severity"]
+                    sev_pct = sev * 10
+                    if sev >= 7:
+                        sev_color = "#ff4b4b"
+                    elif sev >= 4:
+                        sev_color = "#ff8c00"
+                    else:
+                        sev_color = "#ffcc00"
+
+                    crit_tag = " 🔴 **CRITICAL**" if la["critical"] else ""
+
                     st.markdown(
-                        f'<span style="color:{color};font-weight:600;">⚠ {lab}</span>'
-                        f" — {row['Result']} {row['Unit']} ({row['Status']}){crit_tag}",
+                        f'<span style="color:{color};font-weight:600;">⚠ {la["test"]}</span>'
+                        f' — {la["result"]} {la["unit"]} ({la["status"]})'
+                        f' · Ref: {la["reference_range"]}{crit_tag}',
                         unsafe_allow_html=True,
                     )
+
+                    # Severity bar
+                    st.markdown(
+                        f'<div style="display:flex;align-items:center;gap:8px;margin:2px 0 8px 0;">'
+                        f'<span style="font-size:0.75rem;color:rgba(128,128,128,0.6);width:60px;">Severity</span>'
+                        f'<div class="severity-bar-track" style="flex:1;">'
+                        f'<div class="severity-bar-fill" style="width:{sev_pct}%;background:{sev_color};"></div>'
+                        f'</div>'
+                        f'<span style="font-size:0.8rem;font-weight:600;color:{sev_color};">{sev}/10</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                    # Interpretation
+                    if la["interpretation"]:
+                        st.markdown(
+                            f'<div style="font-size:0.84rem;color:rgba(128,128,128,0.7);'
+                            f'padding:0 0 0.5rem 1rem;border-left:2px solid rgba(128,128,128,0.15);">'
+                            f'💡 {la["interpretation"]}</div>',
+                            unsafe_allow_html=True,
+                        )
             else:
                 st.write("✅ No abnormal lab values detected.")
 
@@ -539,29 +716,112 @@ if st.button("🔍 Generate Comprehensive Clinical Report", type="primary", use_
                     unsafe_allow_html=True,
                 )
 
-        # ── Download ──────────────────────────────────────────────────────────
+        # ══════════════════════════════════════════════════════════════════════
+        # SECTION 4: CLINICAL DECISION ASSISTANT
+        # ══════════════════════════════════════════════════════════════════════
         st.divider()
-        report_lines = [
-            "═══════════════════════════════════════════",
-            "     CLINICAL AI SUMMARIZER — REPORT",
-            "═══════════════════════════════════════════",
-            f"Triage Level  : {'HIGH PRIORITY' if is_critical else 'ROUTINE'}",
-            f"Clinical Tone : {text_sentiment}",
-            f"Heart Rate    : {avg_hr:.0f} bpm ({hr_status})",
-            f"SpO₂          : {avg_spo2:.1f}%",
-            f"Abnormal Labs : {', '.join(abnormal_labs) if abnormal_labs else 'None'}",
-            "───────────────────────────────────────────",
-            "CLINICAL SUMMARY:",
-            cleaned_text,
-            "───────────────────────────────────────────",
-            "ACTIONABLE PLAN:",
-            *[f"  [{tier.upper()}] {action}" for tier, action in recommendations],
-            "═══════════════════════════════════════════",
-            "⚠ Research prototype only. Not for clinical use.",
-        ]
-        st.download_button(
-            "⬇ Download Report as TXT",
-            "\n".join(report_lines),
-            file_name="clinical_summary.txt",
-            use_container_width=True,
+        st.markdown('<div class="section-title">🧑‍⚕️ AI CLINICAL ASSISTANT</div>',
+                    unsafe_allow_html=True)
+
+        assist_col1, assist_col2, assist_col3 = st.columns(3)
+
+        with assist_col1:
+            st.markdown("**🔬 Suggested Next Steps:**")
+            for step in suggestions["next_steps"]:
+                st.markdown(f"• {step}")
+
+        with assist_col2:
+            st.markdown("**🩺 Possible Conditions:**")
+            for cond in suggestions["possible_conditions"]:
+                st.markdown(f"• {cond}")
+
+        with assist_col3:
+            st.markdown("**📋 Monitoring Plan:**")
+            for mon in suggestions["monitoring"]:
+                st.markdown(f"• {mon}")
+
+        st.caption("⚠️ *This is not a diagnosis. All suggestions use safe language "
+                   "and require physician review.*")
+
+        # ══════════════════════════════════════════════════════════════════════
+        # SECTION 5: CLINICAL REPORT
+        # ══════════════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown('<div class="section-title">📄 CLINICAL REPORT</div>',
+                    unsafe_allow_html=True)
+
+        # Generate structured report
+        report_text = generate_structured_report(
+            cleaned_text=cleaned_text,
+            text_sentiment=text_sentiment,
+            avg_hr=avg_hr,
+            avg_spo2=avg_spo2,
+            vital_status=hr_status,
+            abnormal_labs=abnormal_labs,
+            lab_analyses=lab_analyses,
+            recommendations=recommendations,
+            risk_score=risk_score,
+            risk_label=risk_label,
+            risk_triggers=risk_triggers,
+            early_warnings=early_warnings,
+            suggestions=suggestions,
+            correlations=correlations,
+            trend_summary=trend_summary,
+            confidence=confidence,
         )
+
+        with st.expander("📄 View Full Report", expanded=False):
+            st.code(report_text, language=None)
+
+        # Download buttons
+        dl_col1, dl_col2 = st.columns(2)
+
+        with dl_col1:
+            st.download_button(
+                "⬇ Download Report as TXT",
+                report_text,
+                file_name="clinical_intelligence_report.txt",
+                use_container_width=True,
+            )
+
+        with dl_col2:
+            if HAS_FPDF:
+                # Sanitize report for PDF (replace Unicode with ASCII equivalents)
+                pdf_text = report_text
+                pdf_replacements = {
+                    "═": "=", "─": "-", "•": "-", "→": "->",
+                    "⚠": "[!]", "✅": "[OK]", "🚨": "[!!]",
+                    "🔴": "[!!]", "🟠": "[!]", "🟡": "[~]",
+                    "🔗": "[LINK]", "📊": "", "📈": "[UP]",
+                    "📉": "[DOWN]", "➡️": "[->]", "💡": "[i]",
+                    "🩸": "", "🦠": "", "⚡": "", "🍬": "",
+                    "🫘": "", "💧": "", "💓": "", "🧠": "",
+                    "🔬": "", "🩺": "", "📋": "", "📄": "",
+                    "🧑\u200d⚕️": "", "❌": "[X]",
+                    "**": "", "SpO₂": "SpO2",
+                    "10³/µL": "10^3/uL",
+                }
+                for old, new in pdf_replacements.items():
+                    pdf_text = pdf_text.replace(old, new)
+                # Remove any remaining non-latin-1 characters
+                pdf_text = pdf_text.encode('latin-1', 'ignore').decode('latin-1')
+
+                # Generate PDF with proper wrapping
+                pdf = FPDF()
+                pdf.set_auto_page_break(auto=True, margin=15)
+                pdf.add_page()
+                pdf.set_font("Courier", size=8)
+                effective_w = pdf.w - pdf.l_margin - pdf.r_margin
+                for line in pdf_text.split("\n"):
+                    pdf.set_x(pdf.l_margin)
+                    pdf.multi_cell(effective_w, 4, line)
+                pdf_bytes = pdf.output()
+                st.download_button(
+                    "⬇ Download Report as PDF",
+                    data=bytes(pdf_bytes),
+                    file_name="clinical_intelligence_report.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            else:
+                st.info("Install `fpdf2` for PDF export: `pip install fpdf2`")
