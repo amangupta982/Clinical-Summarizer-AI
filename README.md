@@ -22,38 +22,11 @@ A hospital-grade, multimodal AI clinical intelligence system featuring hybrid re
 
 ---
 
-## 🧠 How It Works
+## 🧠 System Workflow
 
-The system fuses three independent data modalities through a modular engine architecture:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│              AI Clinical Intelligence Dashboard                  │
-│                                                                  │
-│  📝 Physician Notes  ──► ai_engine.py                            │
-│     │                    ├─ NLP Extraction + Sentiment            │
-│     │                    ├─ Hybrid Reasoning Engine               │
-│     │                    └─ Context-Aware Correlator              │
-│     │                                                            │
-│  🧪 Lab Results CSV  ──► lab_analyzer.py                         │
-│     │                    ├─ WHO Reference Range Flagging          │
-│     │                    ├─ Severity Scoring (0–10)               │
-│     │                    └─ Medical Explanation Engine            │
-│     │                                                            │
-│  💓 Vitals Stream    ──► vitals_engine.py                        │
-│     │                    ├─ Time-Series Analysis                  │
-│     │                    └─ Temporal Trend Tracker                │
-│     │                                                            │
-│     └──────────────────► insight_generator.py                     │
-│                          ├─ Composite Risk Scorer (0–100)        │
-│                          ├─ Early Warning System (6 patterns)    │
-│                          ├─ Clinical Decision Assistant          │
-│                          └─ Structured Report Generator (PDF)    │
-│                                    │                             │
-│                                    ▼                             │
-│          🚨 AI Intelligence Report + Risk Monitor + Alerts       │
-└──────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <img src="assets/workflow.png" alt="Clinical AI Workflow" width="800"/>
+</p>
 
 ### Core Modules
 
