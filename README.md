@@ -80,6 +80,32 @@ The system fuses three independent data modalities through a modular engine arch
 
 ---
 
+## 🤖 Machine Learning Upgrade
+
+The system has been upgraded to support a **Hybrid AI Strategy** that enhances the existing rigorous rule-based NLP engine with a fine-tuned Deep Learning sequential classifier.
+
+### The Hybrid Approach
+Why use both rules and ML? 
+- **Safety First (Rules Override):** The existing clinical keyword-density and sentiment heuristics are left entirely intact to guarantee predictable outputs without "black-box" failures.
+- **Statistical Confidence (ML Layer):** When the ML model's prediction aligns with the rule-based logic, the system intelligently boosts the final confidence score, offering a purely supportive "second opinion".
+
+### Model & Training
+- **Model:** `distilbert-base-uncased` (HuggingFace Transformers).
+- **Datasets:**
+  - `healthcare_dataset.csv` (Structured healthcare data context)
+  - `medical_tc_train.csv` (Training data for text classification)
+  - `medical_tc_test.csv` (Testing/evaluation data)
+- **Results:** The fine-tuned model predicts "Routine/Stable" or "Urgent/Critical" based on the clinical narrative.
+
+**To train the model yourself:**
+Ensure the CSV datasets are in the root directory, then run:
+```bash
+python train_model.py
+```
+This will automatically train the model and save it to the `local_model/` directory, which `ai_engine.py` will actively pick up upon the next application start.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Clone & Install
