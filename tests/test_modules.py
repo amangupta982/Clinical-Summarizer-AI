@@ -213,3 +213,41 @@ class TestContextCorrelator:
         cc = ContextCorrelator()
         corrs = cc.detect_correlations("", "Normal", [])
         assert corrs == []
+
+# ── ML Text Classifier Tests ──────────────────────────────────────────────────
+
+class TestMLTextClassifier:
+
+    def test_predict_without_model(self):
+        from ai_engine import MLTextClassifier
+        # Test fallback behavior when model is not trained yet
+        clf = MLTextClassifier(model_dir="non_existent_dummy_dir")
+        assert not clf.loaded
+        label, conf = clf.predict("Patient has acute chest pain.")
+        assert label is None
+        assert conf == 0.0
+
+class TestHybridSentiment:
+
+    def test_hybrid_sentiment_fallback(self):
+        from ai_engine import get_hybrid_sentiment, ml_classifier
+        ml_classifier.loaded = False  # Ensure fallback
+        rule_sent, ml_bonus, ml_conf, ml_pred = get_hybrid_sentiment("Patient has acute chest pain.")
+        assert rule_sent == "Urgent/Critical"
+        assert ml_bonus == 0.0
+        assert ml_conf == 0.0
+        assert ml_pred is None
+
+    def test_hybrid_sentiment_agreement_mock(self, monkeypatch):
+        from ai_engine import ml_classifier, get_hybrid_sentiment
+        # Mock predict to simulate agreement
+        def mock_predict(text):
+            return "Urgent/Critical", 80.0
+            
+        monkeypatch.setattr(ml_classifier, "predict", mock_predict)
+        rule_sent, ml_bonus, ml_conf, ml_pred = get_hybrid_sentiment("Patient has acute chest pain.")
+        
+        assert rule_sent == "Urgent/Critical"
+        assert ml_pred == "Urgent/Critical"
+        assert ml_conf == 80.0
+        assert ml_bonus > 0.0  # Bonus should be applied for agreement
