@@ -10,6 +10,9 @@ Provides:
 """
 
 import re
+import os
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from nltk.tokenize import sent_tokenize
 
 # ── Real-world clinical training data ─────────────────────────────────────────
@@ -172,6 +175,66 @@ def analyze_sentiment(text: str) -> str:
 
     return "Routine/Stable"
 
+# ── ML Text Classifier Layer ──────────────────────────────────────────────────
+class MLTextClassifier:
+    """
+    Trained HuggingFace Transformer model for clinical text classification.
+    Acts as a supporting layer to the rule-based system.
+    """
+    def __init__(self, model_dir="./local_model"):
+        self.model_dir = model_dir
+        self.model = None
+        self.tokenizer = None
+        self.loaded = False
+        self.load_model()
+
+    def load_model(self):
+        if os.path.exists(self.model_dir):
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_dir)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_dir)
+                self.model.eval()
+                self.loaded = True
+            except Exception as e:
+                print(f"Error loading ML model from {self.model_dir}: {e}")
+                self.loaded = False
+
+    def predict(self, text: str):
+        if not self.loaded or not text:
+            return None, 0.0
+
+        try:
+            inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+                pred_class = torch.argmax(probs, dim=-1).item()
+                confidence = probs[0][pred_class].item() * 100
+            
+            prediction_label = "Urgent/Critical" if pred_class == 1 else "Routine/Stable"
+            return prediction_label, confidence
+        except Exception as e:
+            print(f"Prediction error: {e}")
+            return None, 0.0
+
+ml_classifier = MLTextClassifier()
+
+def get_hybrid_sentiment(text: str):
+    """
+    Combines rule-based prediction with the ML-based prediction.
+    If agreement -> boosts confidence.
+    If conflict -> rules override model.
+    """
+    rule_sentiment = analyze_sentiment(text)
+    ml_sentiment, ml_confidence = ml_classifier.predict(text)
+    
+    ml_bonus = 0.0
+    if ml_sentiment:
+        if rule_sentiment == ml_sentiment:
+            # Both agree -> increase confidence bonus (up to 15 points)
+            ml_bonus = min(15.0, ml_confidence * 0.15)
+            
+    return rule_sentiment, ml_bonus, ml_confidence, ml_sentiment
 
 # ── Hybrid Reasoning Engine ───────────────────────────────────────────────────
 
@@ -253,7 +316,7 @@ class HybridReasoningEngine:
         return "\n".join(explanations)
 
     def compute_confidence(self, text_sentiment, vital_status, abnormal_labs,
-                           critical_labs=None):
+                           critical_labs=None, ml_agreement_bonus=0.0):
         """
         Compute 0–100 confidence score for the overall clinical assessment.
         Higher score = more data points corroborate the assessment.
@@ -285,6 +348,8 @@ class HybridReasoningEngine:
             score += 10
         if modalities_with_data >= 3:
             score += 5
+
+        score += ml_agreement_bonus
 
         return min(score, 100)
 
