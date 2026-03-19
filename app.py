@@ -21,7 +21,7 @@ from nltk.tokenize import sent_tokenize
 # ── Import new engine modules ──────────────────────────────────────────────────
 from ai_engine import (
     CLINICAL_KEYWORDS, URGENCY_KEYWORDS, SAMPLE_NOTES,
-    process_clinical_text, analyze_sentiment,
+    process_clinical_text, analyze_sentiment, get_hybrid_sentiment,
     HybridReasoningEngine, ContextCorrelator,
 )
 from lab_analyzer import (
@@ -456,7 +456,8 @@ if st.button("🔍 Generate Comprehensive Clinical Intelligence Report", type="p
         with st.spinner("Processing Multi-Modal Data... Analyzing across all modalities..."):
             # ── Core analysis (existing logic, now from modules) ──────────────
             cleaned_text    = process_clinical_text(user_notes)
-            text_sentiment  = analyze_sentiment(user_notes)
+            final_sentiment, ml_bonus, ml_confidence, ml_pred_label = get_hybrid_sentiment(user_notes)
+            text_sentiment  = final_sentiment
             avg_hr, avg_spo2, hr_status = analyze_vitals(chart_data)
             lab_df_flagged  = auto_flag_labs(lab_df)
             abnormal_labs   = lab_df_flagged[lab_df_flagged["Status"] != "Normal"]["Test"].tolist()
@@ -478,7 +479,7 @@ if st.button("🔍 Generate Comprehensive Clinical Intelligence Report", type="p
                 abnormal_labs, text_sentiment, lab_analyses
             )
             confidence = reasoning_engine.compute_confidence(
-                text_sentiment, hr_status, abnormal_labs, critical_labs
+                text_sentiment, hr_status, abnormal_labs, critical_labs, ml_agreement_bonus=ml_bonus
             )
 
             # Early warnings
@@ -537,10 +538,15 @@ if st.button("🔍 Generate Comprehensive Clinical Intelligence Report", type="p
             delta_color="inverse" if text_sentiment == "Urgent/Critical" else "normal",
         )
         m5.metric(
-            "Confidence", f"{confidence}%",
+            "Confidence", f"{confidence:.0f}%",
             delta="High" if confidence >= 70 else "Moderate",
             delta_color="normal" if confidence >= 70 else "off",
         )
+        
+        if ml_pred_label:
+            st.caption(f"🤖 **ML Layer Active:** Model Prediction: **{ml_pred_label}** ({ml_confidence:.1f}%) | 🎯 **Rule Agreement:** **{'Yes (Confidence +)' if ml_pred_label == final_sentiment else 'No (Rules Overrode)'}**")
+        else:
+            st.caption("🤖 **ML Layer Status:** Model not loaded/trained. Running entirely on rule-based engine fallback.")
 
         # ══════════════════════════════════════════════════════════════════════
         # SECTION 3: RISK MONITOR
