@@ -3,3 +3,7 @@ streamlit
 pandas
 nltk
 fpdf2
+torch
+transformers
+scikit-learn
+evaluate
